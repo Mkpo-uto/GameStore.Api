@@ -96,30 +96,33 @@ public static void MapGamesEndpoints(this WebApplication app)
         });
 
         // PUT /games/1
-        group.MapPut("/{id}", (int id, UpdateGameDto updatedGame) =>
+        group.MapPut("/{id}", async (int id, UpdateGameDto updatedGame, GameStoreConntext dbContext) =>
         {
-            var index = games.FindIndex(game => game.Id == id);
+            var existingGame = await dbContext.Games.FindAsync(id);
 
-            if (index == -1)
+            if (existingGame is null)
             {
                 return Results.NotFound();
             }
 
-            games[index] = new GameSummaryDto(
-                id,
-                updatedGame.Name,
-                updatedGame.Genre,
-                updatedGame.Price,
-                updatedGame.ReleaseDate
-            );
+            
+               existingGame.Name = updatedGame.Name;
+               existingGame.GenreId = updatedGame.GenreId;
+               existingGame.Price = updatedGame.Price;
+               existingGame.ReleaseDate = updatedGame.ReleaseDate;
+
+               await dbContext.SaveChangesAsync();
+            
 
             return Results.NoContent();
         });
 
         // DELETE /games/1
-        group.MapDelete("/{id}", (int id) =>
+        group.MapDelete("/{id}", async (int id, GameStoreConntext dbContext) =>
         {
-        games.RemoveAll(game => game.Id == id);
+            await dbContext.Games
+                    .Where(game => game.Id == id )
+                    .ExecuteDeleteAsync();
 
         return Results.NoContent(); 
         });
